@@ -1,0 +1,82 @@
+[
+  {
+    "cid": 0,
+    "name": "id",
+    "type": "TEXT",
+    "notnull": 0,
+    "dflt_value": null,
+    "pk": 1
+  },
+  {
+    "cid": 1,
+    "name": "name",
+    "type": "TEXT",
+    "notnull": 1,
+    "dflt_value": null,
+    "pk": 0
+  },
+  {
+    "cid": 2,
+    "name": "email",
+    "type": "TEXT",
+    "notnull": 1,
+    "dflt_value": null,
+    "pk": 0
+  },
+  {
+    "cid": 3,
+    "name": "password",
+    "type": "TEXT",
+    "notnull": 1,
+    "dflt_value": null,
+    "pk": 0
+  },
+  {
+    "cid": 4,
+    "name": "role",
+    "type": "TEXT",
+    "notnull": 1,
+    "dflt_value": null,
+    "pk": 0
+  },
+  {
+    "cid": 5,
+    "name": "orgId",
+    "type": "TEXT",
+    "notnull": 1,
+    "dflt_value": null,
+    "pk": 0
+  },
+  {
+    "cid": 6,
+    "name": "clearance",
+    "type": "INTEGER",
+    "notnull": 1,
+    "dflt_value": "1",
+    "pk": 0
+  },
+  {
+    "cid": 7,
+    "name": "isActive",
+    "type": "BOOLEAN",
+    "notnull": 0,
+    "dflt_value": "1",
+    "pk": 0
+  },
+  {
+    "cid": 8,
+    "name": "createdAt",
+    "type": "DATETIME",
+    "notnull": 0,
+    "dflt_value": "CURRENT_TIMESTAMP",
+    "pk": 0
+  },
+  {
+    "cid": 9,
+    "name": "dept",
+    "type": "TEXT",
+    "notnull": 0,
+    "dflt_value": "'General'",
+    "pk": 0
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "email": "sarah.jenkins@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "michael.ross@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "elizabeth.chen@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "thomas.jones@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "patricia.davis@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "william.davis@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "barbara.davis@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "linda.martinez@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "charles.smith@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "mark.wilson@biolab.com",
+    "password": "$2b$10$T9n2VhBbE8mVOyZ7BIIIZO9EDbZLgjbkPGIFJeH0p3r9EIy55Djm."
+  },
+  {
+    "email": "SUPERADMIN@SMARTACCESS.IO",
+    "password": "admin_access_key"
+  }
+]

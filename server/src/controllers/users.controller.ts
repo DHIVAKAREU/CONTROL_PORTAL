@@ -1,0 +1,141 @@
+import { Response } from 'express';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import pool from '../config/db';
+import { AuthRequest } from '../middleware/auth';
+import { normalizeUsername, validateEmailDomain, isValidEmailFormat } from '../utils/validation';
+
+export const createUser = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        let { username, name, email, organization_id, clearance_level, dept } = req.body;
+        const caller = req.user;
+
+        // 1. Scoping & Permissions
+        if (caller?.role === 'ORG_ADMIN') {
+            organization_id = caller.tenantId;
+        } else if (caller?.role !== 'SUPER_ADMIN') {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return;
+        }
+
+        if (!username || !email || !organization_id || !name) {
+            res.status(400).json({ error: 'MISSING_FIELDS', message: 'Username, name, email, and organization_id are required' });
+            return;
+        }
+
+        // 2. Fetch Organization Domain
+        const [orgs] = await pool.query('SELECT domain FROM organizations WHERE id = ?', [organization_id]);
+        if (!orgs[0]) {
+            res.status(404).json({ error: 'ORGANIZATION_NOT_FOUND' });
+            return;
+        }
+        const domain = orgs[0].domain;
+
+        // 3. Validations
+        username = normalizeUsername(username);
+        if (!isValidEmailFormat(email)) {
+            res.status(400).json({ error: 'INVALID_EMAIL_FORMAT' });
+            return;
+        }
+        if (!validateEmailDomain(email, domain)) {
+            res.status(400).json({ error: 'DOMAIN_MISMATCH', message: `Email must end with @${domain}` });
+            return;
+        }
+
+        // 4. Creation
+        const userId = crypto.randomUUID();
+        const defaultPassword = 'user123';
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+        await pool.query(
+            `INSERT INTO users (id, username, name, email, password_hash, role, organization_id, clearance_level, dept, is_first_login) 
+             VALUES (?, ?, ?, ?, ?, 'USER', ?, ?, ?, 1)`,
+            [userId, username, name, email, hashedPassword, organization_id, clearance_level || 1, dept || 'OPERATIONS']
+        );
+
+        res.status(201).json({ id: userId, username, email, role: 'USER' });
+
+    } catch (error: any) {
+        if (error.message?.includes('UNIQUE constraint failed')) {
+            res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+            return;
+        }
+        console.error('[CREATE_USER_ERROR]', error);
+        res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+};
+
+export const createAdmin = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        let { username, name, email, password, organization_id, clearance_level, dept } = req.body;
+        const caller = req.user;
+
+        if (caller?.role === 'ORG_ADMIN') {
+            organization_id = caller.tenantId;
+        } else if (caller?.role !== 'SUPER_ADMIN') {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return;
+        }
+
+        if (!username || !email || !password || !organization_id || !name) {
+            res.status(400).json({ error: 'MISSING_FIELDS' });
+            return;
+        }
+
+        if (password === 'admin123' && caller?.role !== 'SUPER_ADMIN') {
+            res.status(400).json({ error: 'PASSWORD_NOT_ALLOWED', message: 'Admin password cannot be admin123' });
+            return;
+        }
+
+        const [orgs] = await pool.query('SELECT domain FROM organizations WHERE id = ?', [organization_id]);
+        const domain = orgs[0]?.domain;
+        if (!domain) {
+            res.status(404).json({ error: 'ORGANIZATION_NOT_FOUND' });
+            return;
+        }
+
+        username = normalizeUsername(username);
+        if (!validateEmailDomain(email, domain)) {
+            res.status(400).json({ error: 'DOMAIN_MISMATCH' });
+            return;
+        }
+
+        const userId = crypto.randomUUID();
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await pool.query(
+            `INSERT INTO users (id, username, name, email, password_hash, role, organization_id, clearance_level, dept, is_first_login) 
+             VALUES (?, ?, ?, ?, ?, 'ORG_ADMIN', ?, ?, ?, 1)`,
+            [userId, username, name, email, hashedPassword, organization_id, clearance_level || 5, dept || 'ADMINISTRATION']
+        );
+
+        res.status(201).json({ id: userId, username, email, role: 'ORG_ADMIN' });
+    } catch (error) {
+        res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+};
+
+export const listUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const caller = req.user;
+        let query = 'SELECT u.id, u.username, u.name, u.email, u.role, u.clearance_level, u.dept, u.is_first_login, o.name as organization FROM users u LEFT JOIN organizations o ON u.organization_id = o.id';
+        let params: any[] = [];
+
+        if (caller?.role === 'ORG_ADMIN') {
+            query += ' WHERE u.organization_id = ?';
+            params.push(caller.tenantId);
+        } else if (caller?.role !== 'SUPER_ADMIN') {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return;
+        }
+
+        const [users] = await pool.query(query, params);
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+};
+
+export const getUsers = listUsers;
+export const updateUser = async (req: AuthRequest, res: Response) => { res.status(501).json({ error: 'NOT_IMPLEMENTED' }); };
+export const deleteUser = async (req: AuthRequest, res: Response) => { res.status(501).json({ error: 'NOT_IMPLEMENTED' }); };
