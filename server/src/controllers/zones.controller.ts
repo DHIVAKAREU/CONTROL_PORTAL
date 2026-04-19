@@ -73,3 +73,100 @@ export const createZone = async (req: AuthRequest, res: Response): Promise<void>
     res.status(500).json({ error: 'INTERNAL_ERROR', details: error });
   }
 };
+export const updateZone = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { name, capacity, occupancy, code, description, pos_x, pos_y } = req.body;
+    const tenantId = req.user?.tenantId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
+    if (!id) {
+      res.status(400).json({ error: 'MISSING_ID' });
+      return;
+    }
+
+    // Security check: ensure user belongs to the org or is superadmin
+    if (!isSuperAdmin) {
+      const [existing] = await pool.query('SELECT organization_id FROM zones WHERE id = ?', [id]);
+      if (!existing[0] || existing[0].organization_id !== tenantId) {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Unauthorized access to this zone' });
+        return;
+      }
+    }
+
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (name !== undefined) { fields.push('name = ?'); values.push(name); }
+    if (capacity !== undefined) { fields.push('capacity = ?'); values.push(parseInt(capacity)); }
+    if (occupancy !== undefined) { fields.push('occupancy = ?'); values.push(parseInt(occupancy)); }
+    if (code !== undefined) { fields.push('code = ?'); values.push(code); }
+    if (description !== undefined) { fields.push('description = ?'); values.push(description); }
+    if (pos_x !== undefined) { fields.push('pos_x = ?'); values.push(parseFloat(pos_x)); }
+    if (pos_y !== undefined) { fields.push('pos_y = ?'); values.push(parseFloat(pos_y)); }
+
+    if (fields.length === 0) {
+      res.status(400).json({ error: 'NO_FIELDS_TO_UPDATE' });
+      return;
+    }
+
+    values.push(id);
+    await pool.query(`UPDATE zones SET ${fields.join(', ')} WHERE id = ?`, values);
+
+    const [updated] = await pool.query('SELECT * FROM zones WHERE id = ?', [id]);
+    const zone = updated[0];
+
+    // Audit Log
+    const logId = crypto.randomUUID();
+    await pool.query(
+      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+      [logId, req.user?.email || 'System', 'Updated Zone', zone.name]
+    );
+
+    res.status(200).json(zone);
+  } catch (error: any) {
+    console.error('[UPDATE_ZONE_ERROR]', error);
+    res.status(500).json({ error: 'INTERNAL_ERROR', details: error.message });
+  }
+};
+
+export const deleteZone = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.user?.tenantId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
+    if (!id) {
+      res.status(400).json({ error: 'MISSING_ID' });
+      return;
+    }
+
+    // Security check
+    const [existing] = await pool.query('SELECT name, organization_id FROM zones WHERE id = ?', [id]);
+    const zone = existing[0];
+
+    if (!zone) {
+      res.status(404).json({ error: 'NOT_FOUND' });
+      return;
+    }
+
+    if (!isSuperAdmin && zone.organization_id !== tenantId) {
+      res.status(403).json({ error: 'FORBIDDEN' });
+      return;
+    }
+
+    await pool.query('DELETE FROM zones WHERE id = ?', [id]);
+
+    // Audit Log
+    const logId = crypto.randomUUID();
+    await pool.query(
+      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+      [logId, req.user?.email || 'System', 'Deleted Zone', zone.name]
+    );
+
+    res.status(200).json({ message: 'ZONE_DELETED' });
+  } catch (error: any) {
+    console.error('[DELETE_ZONE_ERROR]', error);
+    res.status(500).json({ error: 'INTERNAL_ERROR', details: error.message });
+  }
+};
