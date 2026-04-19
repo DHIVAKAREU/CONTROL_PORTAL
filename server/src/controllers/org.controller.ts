@@ -57,7 +57,7 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
         adminEmail: finalAdminEmail,
         tempPassword: finalPassword,
         role: 'ORG_ADMIN',
-        loginUrl: `http://localhost:3000/login`
+        loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
       }
     });
 

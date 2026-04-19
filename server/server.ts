@@ -32,7 +32,9 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*'
+}));
 app.use(express.json());
 
 // Custom Request Logger
