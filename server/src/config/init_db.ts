@@ -149,6 +149,12 @@ export async function initDatabase() {
     console.log('Seeded high-fidelity platform data, users, and privacy settings.');
   }
 
+  // Ensure 'platform-root' always exists for the Hardcoded Bypass
+  await db.run(
+    'INSERT OR IGNORE INTO organizations (id, name, slug, domain, status, plan) VALUES (?, ?, ?, ?, ?, ?)',
+    ['platform-root', 'Smart Access Platform', 'PLATFORM', 'smartaccess.io', 'ACTIVE', 'ENTERPRISE']
+  );
+
   console.log('Database initialized successfully with Unified Schema.');
 }
 

@@ -29,7 +29,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     req.user = {
       userId: 'bypass-super-admin',
       tenantId: 'platform-root',
-      role: 'PLATFORM_ADMIN',
+      role: 'SUPER_ADMIN',
       username: 'superadmin',
       name: 'System Override Admin',
       email: 'superadmin@system.in'

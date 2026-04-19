@@ -35,7 +35,8 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
         // 2. Fetch Organization Domain
         const [orgs] = await pool.query('SELECT domain FROM organizations WHERE id = ?', [organization_id]);
         if (!orgs[0]) {
-            res.status(404).json({ error: 'ORGANIZATION_NOT_FOUND' });
+            console.error('[CREATE_USER_ERROR] Organization not found:', organization_id);
+            res.status(404).json({ error: 'ORGANIZATION_NOT_FOUND', details: `Org ID ${organization_id} does not exist` });
             return;
         }
         const domain = orgs[0].domain;
