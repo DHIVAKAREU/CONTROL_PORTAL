@@ -20,6 +20,21 @@ import { listUsers } from './src/controllers/users.controller';
 import { getZones } from './src/controllers/zones.controller';
 import { authenticate } from './src/middleware/auth';
 
+// Add aggressive error logging at the very top level
+process.on('uncaughtException', (err) => {
+  console.error('\n\n[FATAL] UNCAUGHT EXCEPTION:', err.name);
+  console.error('[FATAL] MESSAGE:', err.message);
+  console.error('[FATAL] STACK:', err.stack);
+  console.error('\n\n');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('\n\n[FATAL] UNHANDLED REJECTION AT:', promise, 'REASON:', reason);
+  console.error('\n\n');
+  process.exit(1);
+});
+
 // Import Config
 import { initSocket } from './src/config/socket';
 
