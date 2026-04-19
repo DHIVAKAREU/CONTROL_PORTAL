@@ -96,10 +96,10 @@ export async function initDatabase() {
   const orgCount = await db.get('SELECT COUNT(*) as count FROM organizations');
   if (orgCount.count === 0) {
     const orgs = [
-      { id: crypto.randomUUID(), name: 'Smart Access Platform', slug: 'platform', domain: 'smartaccess.io', plan: 'ENTERPRISE', status: 'ACTIVE' },
-      { id: crypto.randomUUID(), name: 'JUSPAY Technologies', slug: 'juspay', domain: 'juspay.com', plan: 'ENTERPRISE', status: 'ACTIVE' },
-      { id: crypto.randomUUID(), name: 'CIT Institute', slug: 'cit', domain: 'cit.edu', plan: 'PRO', status: 'ACTIVE' },
-      { id: crypto.randomUUID(), name: 'Acme Corp', slug: 'acme', domain: 'acme.com', plan: 'STARTER', status: 'ACTIVE' },
+      { id: 'platform-root', name: 'Smart Access Platform', slug: 'platform', domain: 'smartaccess.io', plan: 'ENTERPRISE', status: 'ACTIVE' },
+      { id: 'juspay-root', name: 'JUSPAY Technologies', slug: 'juspay', domain: 'juspay.com', plan: 'ENTERPRISE', status: 'ACTIVE' },
+      { id: 'cit-root', name: 'CIT Institute', slug: 'cit', domain: 'cit.edu', plan: 'PRO', status: 'ACTIVE' },
+      { id: 'acme-root', name: 'Acme Corp', slug: 'acme', domain: 'acme.com', plan: 'STARTER', status: 'ACTIVE' },
     ];
 
     const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -149,11 +149,19 @@ export async function initDatabase() {
     console.log('Seeded high-fidelity platform data, users, and privacy settings.');
   }
 
-  // Ensure 'platform-root' always exists for the Hardcoded Bypass
-  await db.run(
-    'INSERT OR IGNORE INTO organizations (id, name, slug, domain, status, plan) VALUES (?, ?, ?, ?, ?, ?)',
-    ['platform-root', 'Smart Access Platform', 'PLATFORM', 'smartaccess.io', 'ACTIVE', 'ENTERPRISE']
-  );
+  // Ensure fixed organization IDs always exist for Hardcoded Bypasses
+  const bypassOrgs = [
+    ['platform-root', 'Smart Access Platform', 'PLATFORM', 'smartaccess.io', 'ACTIVE', 'ENTERPRISE'],
+    ['juspay-root', 'JUSPAY Technologies', 'JUSPAY', 'juspay.com', 'ACTIVE', 'ENTERPRISE'],
+    ['cit-root', 'CIT Institute', 'CIT', 'cit.edu', 'ACTIVE', 'PRO']
+  ];
+
+  for (const org of bypassOrgs) {
+    await db.run(
+      'INSERT OR IGNORE INTO organizations (id, name, slug, domain, status, plan) VALUES (?, ?, ?, ?, ?, ?)',
+      org
+    );
+  }
 
   console.log('Database initialized successfully with Unified Schema.');
 }

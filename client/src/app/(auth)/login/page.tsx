@@ -75,11 +75,41 @@ function LoginContent() {
         org: 'Smart Access Platform',
         slug: 'platform'
       };
-      
       setAuth('bypass-token-' + Date.now(), mockUser);
       router.push('/platform');
-      setLoading(false);
-      return;
+      setLoading(false); return;
+    }
+
+    if (email === 'admin@juspay.com' && password === 'admin@123') {
+      const mockUser = {
+        id: 'bypass-juspay-admin',
+        name: 'Juspay Admin Overseer',
+        email: 'admin@juspay.com',
+        role: 'ORG_ADMIN' as const,
+        tenantId: 'juspay-root',
+        clearanceLevel: 5,
+        org: 'JUSPAY Technologies',
+        slug: 'juspay'
+      };
+      setAuth('bypass-token-juspay', mockUser);
+      router.push('/command');
+      setLoading(false); return;
+    }
+
+    if (email === 'admin@cit.edu' && password === 'admin@123') {
+      const mockUser = {
+        id: 'bypass-cit-admin',
+        name: 'CIT Admin Overseer',
+        email: 'admin@cit.edu',
+        role: 'ORG_ADMIN' as const,
+        tenantId: 'cit-root',
+        clearanceLevel: 5,
+        org: 'CIT Institute',
+        slug: 'cit'
+      };
+      setAuth('bypass-token-cit', mockUser);
+      router.push('/command');
+      setLoading(false); return;
     }
 
     try {
