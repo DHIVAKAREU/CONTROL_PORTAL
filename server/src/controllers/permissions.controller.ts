@@ -109,18 +109,26 @@ export const simulateScan = async (req: AuthRequest, res: Response) => {
       return isDayAllowed && isTimeInWindow;
     });
 
+    // Fetch names for logging
+    const [uRows] = await pool.query('SELECT name FROM users WHERE id = ?', [userId]) as any[];
+    const [zRows] = await pool.query('SELECT name FROM zones WHERE id = ?', [zoneId]) as any[];
+    const userName = uRows[0]?.name || 'Unknown';
+    const zoneName = zRows[0]?.name || 'Unknown';
+
     if (hasAccess) {
       await pool.query(
         'INSERT INTO events (id, user_id, zone_id, status) VALUES (?, ?, ?, ?)',
         [crypto.randomUUID(), userId, zoneId, 'GRANTED']
       );
+      await recordAuditLog(userName, 'Access Event: GRANTED', `Zone: ${zoneName}`);
       return res.json({ status: 'GRANTED' });
     } else {
       await pool.query(
         'INSERT INTO events (id, user_id, zone_id, status) VALUES (?, ?, ?, ?)',
         [crypto.randomUUID(), userId, zoneId, 'DENIED']
       );
-      return res.json({ status: 'DENIED', reason: 'Out of permitted time window' });
+      await recordAuditLog(userName, 'Access Event: DENIED', `Zone: ${zoneName}`);
+      return res.json({ status: 'DENIED', reason: 'Out of permitted time window or missing permissions' });
     }
   } catch (error) {
     console.error('SERVER_SIMULATE_SCAN_ERROR:', error);

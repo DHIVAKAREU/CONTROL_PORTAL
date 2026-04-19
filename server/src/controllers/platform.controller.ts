@@ -32,11 +32,7 @@ export const impersonateTenant = async (req: AuthRequest, res: Response): Promis
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 
-    const logId = crypto.randomUUID();
-    await pool.query(
-      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [logId, req.user.name, 'Started Impersonation', org.name]
-    );
+    await recordAuditLog(req.user.name, 'Started Impersonation', org.name);
 
     res.status(200).json({ token });
   } catch (error) {

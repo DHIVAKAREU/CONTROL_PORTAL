@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db';
 import crypto from 'crypto';
+import { recordAuditLog } from '../utils/audit';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-only';
 
@@ -53,6 +54,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
 
+    await recordAuditLog(user.email, 'Authenticated', `User ID: ${user.id}`);
+
     res.status(200).json({
       token,
       user: {
@@ -89,6 +92,8 @@ export const changePassword = async (req: any, res: Response): Promise<void> => 
       'UPDATE users SET password_hash = ?, is_first_login = 0 WHERE id = ?',
       [hashedPassword, userId]
     );
+
+    await recordAuditLog(req.user?.email || 'System', 'Security Hash Updated', `User ID: ${userId}`);
 
     res.status(200).json({ message: 'PASSWORD_CHANGED_SUCCESSFULLY' });
   } catch (error) {

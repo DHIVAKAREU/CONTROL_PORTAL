@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { getDb } from '../config/db';
 import { AuthRequest } from '../middleware/auth';
+import { recordAuditLog } from '../utils/audit';
 
 export const getPlatformSettings = async (req: AuthRequest, res: Response) => {
   try {
@@ -39,6 +40,8 @@ export const updatePlatformSetting = async (req: AuthRequest, res: Response) => 
       'INSERT INTO PlatformSettings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP',
       [key, valString]
     );
+
+    await recordAuditLog(req.user?.email || 'System', 'Platform Configuration Updated', key);
 
     console.log(`[AUDIT] Platform Setting Updated: ${key} = ${valString} by ${req.user?.email}`);
 

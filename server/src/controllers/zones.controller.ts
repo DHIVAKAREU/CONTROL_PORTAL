@@ -2,6 +2,7 @@ import { Response } from 'express';
 import pool from '../config/db';
 import { AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
+import { recordAuditLog } from '../utils/audit';
 
 export const getZones = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -61,11 +62,7 @@ export const createZone = async (req: AuthRequest, res: Response): Promise<void>
     const zone = rows[0];
 
     // Audit Log (V2 schema)
-    const logId = crypto.randomUUID();
-    await pool.query(
-      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [logId, req.user?.email || 'System', 'Created Zone', zone.name]
-    );
+    await recordAuditLog(req.user?.email || 'System', 'Zone Created', zone.name);
 
     res.status(201).json(zone);
   } catch (error) {
@@ -117,11 +114,7 @@ export const updateZone = async (req: AuthRequest, res: Response): Promise<void>
     const zone = updated[0];
 
     // Audit Log
-    const logId = crypto.randomUUID();
-    await pool.query(
-      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [logId, req.user?.email || 'System', 'Updated Zone', zone.name]
-    );
+    await recordAuditLog(req.user?.email || 'System', 'Zone Updated', zone.name);
 
     res.status(200).json(zone);
   } catch (error: any) {
@@ -158,11 +151,7 @@ export const deleteZone = async (req: AuthRequest, res: Response): Promise<void>
     await pool.query('DELETE FROM zones WHERE id = ?', [id]);
 
     // Audit Log
-    const logId = crypto.randomUUID();
-    await pool.query(
-      'INSERT INTO audit_logs (id, actor, action, target, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      [logId, req.user?.email || 'System', 'Deleted Zone', zone.name]
-    );
+    await recordAuditLog(req.user?.email || 'System', 'Zone Deleted', zone.name);
 
     res.status(200).json({ message: 'ZONE_DELETED' });
   } catch (error: any) {
