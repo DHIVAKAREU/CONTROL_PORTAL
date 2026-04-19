@@ -36,7 +36,7 @@ export const updatePlatformSetting = async (req: AuthRequest, res: Response) => 
     const valString = String(value);
 
     await db.run(
-      'INSERT INTO PlatformSettings (key, value, updatedAt) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = CURRENT_TIMESTAMP',
+      'INSERT INTO PlatformSettings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP',
       [key, valString]
     );
 

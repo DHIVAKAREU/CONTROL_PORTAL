@@ -7,15 +7,16 @@ export async function initDatabase() {
 
   console.log('Initializing SQLite database (Unified Schema)...');
 
+  // Core Schema with standard created_at naming
   await db.exec(`
     CREATE TABLE IF NOT EXISTS organizations (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT UNIQUE NOT NULL,
-      domain TEXT,
+      domain TEXT UNIQUE,
       status TEXT NOT NULL DEFAULT 'ACTIVE',
       plan TEXT NOT NULL DEFAULT 'STARTER',
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS users (
@@ -29,16 +30,21 @@ export async function initDatabase() {
       dept TEXT DEFAULT 'General',
       clearance_level INTEGER NOT NULL DEFAULT 1,
       is_first_login BOOLEAN DEFAULT 1,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (organization_id) REFERENCES organizations(id)
     );
 
     CREATE TABLE IF NOT EXISTS zones (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      code TEXT,
+      description TEXT,
       capacity INTEGER NOT NULL DEFAULT 100,
       occupancy INTEGER NOT NULL DEFAULT 0,
       organization_id TEXT NOT NULL,
+      pos_x REAL DEFAULT 50,
+      pos_y REAL DEFAULT 50,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (organization_id) REFERENCES organizations(id)
     );
 
@@ -47,7 +53,8 @@ export async function initDatabase() {
       user_id TEXT NOT NULL,
       zone_id TEXT NOT NULL,
       status TEXT NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      method TEXT DEFAULT 'SCAN',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (zone_id) REFERENCES zones(id)
     );
@@ -62,7 +69,7 @@ export async function initDatabase() {
       start_time TEXT NOT NULL,
       end_time TEXT NOT NULL,
       allowed_days TEXT NOT NULL, 
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (zone_id) REFERENCES zones(id),
       FOREIGN KEY (organization_id) REFERENCES organizations(id)
@@ -73,15 +80,18 @@ export async function initDatabase() {
       actor TEXT NOT NULL,
       action TEXT NOT NULL,
       target TEXT NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS PlatformSettings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Schema Patching (Migration Helper)
+  await applySchemaPatches(db);
 
   const orgCount = await db.get('SELECT COUNT(*) as count FROM organizations');
   if (orgCount.count === 0) {
@@ -140,5 +150,62 @@ export async function initDatabase() {
   }
 
   console.log('Database initialized successfully with Unified Schema.');
+}
+
+async function applySchemaPatches(db: any) {
+  // 1. Patch 'zones' table
+  const zoneCols = await db.all('PRAGMA table_info(zones)');
+  const zoneColNames = zoneCols.map((c: any) => c.name);
+
+  if (!zoneColNames.includes('code')) {
+    console.log('[SCHEMA_PATCH] Adding "code" column to zones');
+    await db.run('ALTER TABLE zones ADD COLUMN code TEXT');
+  }
+  if (!zoneColNames.includes('description')) {
+    console.log('[SCHEMA_PATCH] Adding "description" column to zones');
+    await db.run('ALTER TABLE zones ADD COLUMN description TEXT');
+  }
+  if (!zoneColNames.includes('pos_x')) {
+    console.log('[SCHEMA_PATCH] Adding "pos_x" column to zones');
+    await db.run('ALTER TABLE zones ADD COLUMN pos_x REAL DEFAULT 50');
+  }
+  if (!zoneColNames.includes('pos_y')) {
+    console.log('[SCHEMA_PATCH] Adding "pos_y" column to zones');
+    await db.run('ALTER TABLE zones ADD COLUMN pos_y REAL DEFAULT 50');
+  }
+
+  // 2. Patch 'events' table
+  const eventCols = await db.all('PRAGMA table_info(events)');
+  const eventColNames = eventCols.map((c: any) => c.name);
+
+  if (!eventColNames.includes('method')) {
+    console.log('[SCHEMA_PATCH] Adding "method" column to events');
+    await db.run('ALTER TABLE events ADD COLUMN method TEXT DEFAULT "SCAN"');
+  }
+
+  // 3. Patch 'PlatformSettings' table
+  const settingCols = await db.all('PRAGMA table_info(PlatformSettings)');
+  const settingColNames = settingCols.map((c: any) => c.name);
+
+  if (!settingColNames.includes('updated_at') && settingColNames.includes('updatedAt')) {
+    console.log('[SCHEMA_PATCH] Renaming "updatedAt" to "updated_at" in PlatformSettings');
+    await db.run('ALTER TABLE PlatformSettings RENAME COLUMN updatedAt TO updated_at');
+  } else if (!settingColNames.includes('updated_at')) {
+    await db.run('ALTER TABLE PlatformSettings ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP');
+  }
+
+  // 4. Standardize generic 'created_at' timestamps
+  const tables = ['organizations', 'users', 'events', 'permissions', 'audit_logs', 'zones'];
+  for (const table of tables) {
+    const info = await db.all(`PRAGMA table_info(${table})`);
+    const names = info.map((c: any) => c.name);
+    if (!names.includes('created_at') && names.includes('createdAt')) {
+      console.log(`[SCHEMA_PATCH] Moving "createdAt" to "created_at" in ${table}`);
+      await db.run(`ALTER TABLE ${table} RENAME COLUMN createdAt TO created_at`);
+    } else if (!names.includes('created_at')) {
+       // Only add if it didn't exist at all (and wasn't already renamed)
+       await db.run(`ALTER TABLE ${table} ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+    }
+  }
 }
 

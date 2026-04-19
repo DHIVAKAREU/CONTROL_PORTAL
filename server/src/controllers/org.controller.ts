@@ -19,7 +19,10 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
     // Normalize domain: extract domain if email, trim, and lowercase
     const cleanDomain = domain.includes('@') ? domain.split('@')[1] : domain.trim().toLowerCase();
     const orgId = crypto.randomUUID();
-    const orgSlug = (slug || name.replace(/\s+/g, '-').toUpperCase().substring(0, 12)).toUpperCase();
+    
+    // Improved Slug Generation: Name-based + short random suffix for uniqueness
+    const baseSlug = (slug || name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toUpperCase().substring(0, 10));
+    const orgSlug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
     const orgPlan = plan || 'STARTER';
     
     // 1. Create Organization
@@ -56,14 +59,19 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
         adminName: finalAdminName,
         adminEmail: finalAdminEmail,
         tempPassword: finalPassword,
-        role: 'ORG_ADMIN',
-        loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`
+        role: 'ORG_ADMIN'
       }
     });
 
   } catch (error: any) {
     if (error.message?.includes('UNIQUE constraint failed')) {
-      res.status(409).json({ error: 'DOMAIN_ALREADY_EXISTS', message: 'An organization with this domain already exists' });
+      if (error.message.includes('organizations.domain')) {
+        res.status(409).json({ error: 'DOMAIN_ALREADY_EXISTS', message: 'An organization with this domain already exists' });
+      } else if (error.message.includes('organizations.slug')) {
+        res.status(409).json({ error: 'SLUG_ALREADY_EXISTS', message: 'This organization name or slug is already taken' });
+      } else {
+        res.status(409).json({ error: 'CONFLICT', message: 'Unique constraint violation: ' + error.message });
+      }
       return;
     }
     console.error('[ORG_CREATE_ERROR]', error);
