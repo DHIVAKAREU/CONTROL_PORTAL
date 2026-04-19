@@ -25,7 +25,7 @@ async function simulateCreateOrg() {
     );
     console.log('Admin User Inserted.');
 
-  } catch (err) {
+  } catch (err:any) {
     console.error('SIMULATION_FAILURE:', err.message);
   }
 }
