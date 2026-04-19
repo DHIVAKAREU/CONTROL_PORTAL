@@ -8,7 +8,7 @@ import { recordAuditLog } from '../utils/audit';
 
 export const createUser = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        let { username, name, email, organization_id, clearance_level, dept } = req.body;
+        let { username, name, email, password, organization_id, clearance_level, dept } = req.body;
         const caller = req.user;
 
         // 1. Scoping & Permissions
@@ -54,8 +54,8 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
 
         // 4. Creation
         const userId = crypto.randomUUID();
-        const defaultPassword = 'user123';
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+        const effectivePassword = password || 'Access@123';
+        const hashedPassword = await bcrypt.hash(effectivePassword, 10);
 
         await pool.query(
             `INSERT INTO users (id, username, name, email, password_hash, role, organization_id, clearance_level, dept, is_first_login) 
@@ -121,7 +121,8 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
         }
 
         const userId = crypto.randomUUID();
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const effectivePassword = password || 'Access@123';
+        const hashedPassword = await bcrypt.hash(effectivePassword, 10);
 
         await pool.query(
             `INSERT INTO users (id, username, name, email, password_hash, role, organization_id, clearance_level, dept, is_first_login) 

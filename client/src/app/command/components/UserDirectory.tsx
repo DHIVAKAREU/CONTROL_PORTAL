@@ -55,7 +55,7 @@ export default function UserDirectory({ onUserCreated, users, setUsers, refreshU
         body: JSON.stringify({
           ...currentUser,
           dept: currentUser.dept || 'General',
-          password: currentUser.password || 'changeme123'
+          password: currentUser.password || 'Access@123'
         }),
         cache: 'no-store'
       });
@@ -292,8 +292,15 @@ export default function UserDirectory({ onUserCreated, users, setUsers, refreshU
                         <label style={{ fontSize: "10px", fontWeight: 900, color: "rgba(59,130,246,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Access Password</label>
                         <div style={{ position: "relative" }}>
                             <Lock size={16} style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.2)" }} />
-                            <input type="password" required={modalMode === 'add'} placeholder="SECURE_HASH_KEY" value={currentUser.password || ''} onChange={e => setCurrentUser({...currentUser, password: e.target.value})} style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "12px 16px 12px 44px", color: "#fff", outline: "none" }} />
+                            <input 
+                              type="password" 
+                              placeholder="Default: Access@123" 
+                              value={currentUser.password || ''} 
+                              onChange={e => setCurrentUser({...currentUser, password: e.target.value})} 
+                              style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "12px 16px 12px 44px", color: "#fff", outline: "none" }} 
+                            />
                         </div>
+                        <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)", margin: "4px 0 0", fontWeight: 700 }}>Leave blank for system default.</p>
                       </div>
                     )}
 
