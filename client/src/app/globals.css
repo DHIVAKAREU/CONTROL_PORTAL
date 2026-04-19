@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .animation-delay-2000 { animation-delay: 2s; }
+  .animation-delay-4000 { animation-delay: 4s; }
+}
+
+@keyframes radar {
+  0% { transform: rotate(0deg); opacity: 0.1; }
+  50% { opacity: 0.4; }
+  100% { transform: rotate(360deg); opacity: 0.1; }
+}
+
+@keyframes ripple-slow {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+@keyframes scan-v {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(80px); opacity: 0; }
+}
+
+.animate-radar { animation: radar 4s linear infinite; }
+.animate-ripple-slow { 
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-slow 6s cubic-bezier(0, 0, 0.2, 1) infinite; 
+}
+@keyframes data-float {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.1; }
+  80% { opacity: 0.1; }
+  100% { transform: translateY(-100px) rotate(45deg); opacity: 0; }
+}
+
+@keyframes glitch-text {
+  0% { transform: translateX(0); opacity: 1; }
+  20% { transform: translateX(-1px); opacity: 0.8; }
+  40% { transform: translateX(1px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-data-float { animation: data-float 15s linear infinite; }
+.animate-glitch-text { animation: glitch-text 0.2s ease-in-out infinite alternate; }
