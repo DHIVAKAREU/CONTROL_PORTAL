@@ -2,7 +2,7 @@ import { getDb } from './db';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
-async function init() {
+export async function initDatabase() {
   const db = await getDb();
 
   console.log('Initializing SQLite database (Unified Schema)...');
@@ -142,4 +142,3 @@ async function init() {
   console.log('Database initialized successfully with Unified Schema.');
 }
 
-init().catch(console.error);

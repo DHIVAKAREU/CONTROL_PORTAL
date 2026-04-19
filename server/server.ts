@@ -37,6 +37,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Import Config
 import { initSocket } from './src/config/socket';
+import { initDatabase } from './src/config/init_db';
 
 dotenv.config();
 
@@ -91,10 +92,23 @@ app.use('/api/org/zones', zoneRoutes);
 // -----------------------------------------------------------------
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log('JWT_SECRET_STATUS:', process.env.JWT_SECRET ? 'LOADED_FROM_ENV' : 'USING_DEFAULT_FALLBACK');
-});
+
+async function start() {
+  try {
+    // Ensure DB is initialized before listening
+    await initDatabase();
+    
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log('JWT_SECRET_STATUS:', process.env.JWT_SECRET ? 'LOADED_FROM_ENV' : 'USING_DEFAULT_FALLBACK');
+    });
+  } catch (error) {
+    console.error('FAILED_TO_START_SERVER:', error);
+    process.exit(1);
+  }
+}
+
+start();
 
 // Global Error Handler (MUST be after all routes)
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
