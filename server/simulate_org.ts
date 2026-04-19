@@ -1,7 +1,6 @@
-
-const pool = require('./src/config/db').default;
-const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+import pool from './src/config/db';
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 async function simulateCreateOrg() {
   try {
