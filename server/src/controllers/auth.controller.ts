@@ -38,15 +38,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // MAPPING FOR FRONTEND (Role & Field alignment)
-    // The frontend expects PLATFORM_ADMIN for superadmins.
+    // The JWT must carry the real DB role so middleware requireRole works correctly.
+    // We separately map to a display role for the frontend user object.
     const frontendRole = user.role === 'SUPER_ADMIN' ? 'PLATFORM_ADMIN' : user.role;
 
-    // Create JWT
+    // Create JWT — use the REAL role in the token so the backend middleware works
     const payload = {
       userId: user.id,
       tenantId: user.organization_id || 'system',
-      role: frontendRole,
+      role: user.role, // real DB role (SUPER_ADMIN, ORG_ADMIN, USER)
       name: user.name,
       email: user.email
     };

@@ -19,15 +19,19 @@ export const getZones = async (req: AuthRequest, res: Response): Promise<void> =
     const [zones] = await pool.query(query, params);
     
     res.status(200).json(zones);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  } catch (error: any) {
+    console.error('[GET_ZONES_ERROR]', {
+      message: error.message,
+      stack: error.stack,
+      user: req.user?.email
+    });
+    res.status(500).json({ error: 'INTERNAL_ERROR', details: error.message });
   }
 };
 
 export const createZone = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, capacity, occupancy, code, description } = req.body;
+    const { name, capacity, occupancy, code, description, pos_x, pos_y } = req.body;
     const orgId = req.user?.tenantId;
     const zoneId = crypto.randomUUID();
     
@@ -39,7 +43,7 @@ export const createZone = async (req: AuthRequest, res: Response): Promise<void>
     const finalOrgId = orgId || req.body.organization_id;
 
     await pool.query(
-      'INSERT INTO zones (id, name, code, description, capacity, occupancy, organization_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, name, code, description, capacity, occupancy, organization_id, pos_x, pos_y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         zoneId, 
         name, 
@@ -47,7 +51,9 @@ export const createZone = async (req: AuthRequest, res: Response): Promise<void>
         description || '', 
         parseInt(capacity) || 100, 
         parseInt(occupancy) || 0, 
-        finalOrgId
+        finalOrgId,
+        parseFloat(pos_x) || 50,
+        parseFloat(pos_y) || 50
       ]
     );
 

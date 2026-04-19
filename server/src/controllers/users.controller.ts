@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import pool from '../config/db';
 import { AuthRequest } from '../middleware/auth';
 import { normalizeUsername, validateEmailDomain, isValidEmailFormat } from '../utils/validation';
+import { recordAuditLog } from '../utils/audit';
 
 export const createUser = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -18,8 +19,16 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
             return;
         }
 
+        // Derive username from email if missing
+        if (!username && email) {
+            username = email.split('@')[0];
+        }
+
         if (!username || !email || !organization_id || !name) {
-            res.status(400).json({ error: 'MISSING_FIELDS', message: 'Username, name, email, and organization_id are required' });
+            res.status(400).json({ 
+                error: 'MISSING_FIELDS', 
+                message: 'Username (or email), name, email, and organization_id are required' 
+            });
             return;
         }
 
@@ -53,6 +62,8 @@ export const createUser = async (req: AuthRequest, res: Response): Promise<void>
             [userId, username, name, email, hashedPassword, organization_id, clearance_level || 1, dept || 'OPERATIONS']
         );
 
+        await recordAuditLog(req.user?.email || 'System', 'Identity Provisioned', `${name} (${email})`);
+
         res.status(201).json({ id: userId, username, email, role: 'USER' });
 
     } catch (error: any) {
@@ -77,8 +88,16 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
             return;
         }
 
+        // Derive username from email if missing
+        if (!username && email) {
+            username = email.split('@')[0];
+        }
+
         if (!username || !email || !password || !organization_id || !name) {
-            res.status(400).json({ error: 'MISSING_FIELDS' });
+            res.status(400).json({ 
+                error: 'MISSING_FIELDS', 
+                message: 'Username (or email), name, email, password, and organization_id are required' 
+            });
             return;
         }
 
@@ -109,6 +128,8 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
             [userId, username, name, email, hashedPassword, organization_id, clearance_level || 5, dept || 'ADMINISTRATION']
         );
 
+        await recordAuditLog(req.user?.email || 'System', 'Admin Provisioned', `${name} (${email})`);
+
         res.status(201).json({ id: userId, username, email, role: 'ORG_ADMIN' });
     } catch (error) {
         res.status(500).json({ error: 'INTERNAL_ERROR' });
@@ -116,9 +137,10 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
 };
 
 export const listUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+    let query = '';
     try {
         const caller = req.user;
-        let query = 'SELECT u.id, u.username, u.name, u.email, u.role, u.clearance_level, u.dept, u.is_first_login, o.name as organization FROM users u LEFT JOIN organizations o ON u.organization_id = o.id';
+        query = 'SELECT u.id, u.username, u.name, u.email, u.role, u.clearance_level, u.dept, u.is_first_login, o.name as organization FROM users u LEFT JOIN organizations o ON u.organization_id = o.id';
         let params: any[] = [];
 
         if (caller?.role === 'ORG_ADMIN') {
@@ -131,11 +153,48 @@ export const listUsers = async (req: AuthRequest, res: Response): Promise<void> 
 
         const [users] = await pool.query(query, params);
         res.status(200).json(users);
-    } catch (error) {
-        res.status(500).json({ error: 'INTERNAL_ERROR' });
+    } catch (error: any) {
+        console.error('[LIST_USERS_ERROR]', {
+            message: error.message,
+            stack: error.stack,
+            caller: req.user?.email,
+            queryPreview: query ? query.substring(0, 50) : 'N/A'
+        });
+        res.status(500).json({ error: 'INTERNAL_ERROR', details: error.message });
     }
 };
 
 export const getUsers = listUsers;
 export const updateUser = async (req: AuthRequest, res: Response) => { res.status(501).json({ error: 'NOT_IMPLEMENTED' }); };
-export const deleteUser = async (req: AuthRequest, res: Response) => { res.status(501).json({ error: 'NOT_IMPLEMENTED' }); };
+
+export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const caller = req.user;
+
+        // 1. Get user details before deletion
+        const [users] = await pool.query('SELECT name, email, organization_id FROM users WHERE id = ?', [id]) as any[];
+        const targetUser = users[0];
+
+        if (!targetUser) {
+            res.status(404).json({ error: 'USER_NOT_FOUND' });
+            return;
+        }
+
+        // 2. Permission check
+        if (caller?.role === 'ORG_ADMIN' && targetUser.organization_id !== caller.tenantId) {
+            res.status(403).json({ error: 'FORBIDDEN' });
+            return;
+        }
+
+        await pool.query('DELETE FROM users WHERE id = ?', [id]);
+
+        // 3. Audit Log
+        await recordAuditLog(caller?.email || 'System', 'Identity Revoked', `${targetUser.name} (${targetUser.email})`);
+
+        res.status(200).json({ message: 'USER_DELETED_SUCCESSFULLY' });
+    } catch (error) {
+        console.error('[DELETE_USER_ERROR]', error);
+        res.status(500).json({ error: 'INTERNAL_ERROR' });
+    }
+};

@@ -36,9 +36,13 @@ export const getEvents = async (req: AuthRequest, res: Response): Promise<void> 
     }));
     
     res.status(200).json(formattedEvents);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  } catch (error: any) {
+    console.error('[GET_EVENTS_ERROR]', {
+      message: error.message,
+      stack: error.stack,
+      user: req.user?.email
+    });
+    res.status(500).json({ error: 'INTERNAL_ERROR', details: error.message });
   }
 };
 

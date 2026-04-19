@@ -35,6 +35,16 @@ initSocket(server);
 app.use(cors());
 app.use(express.json());
 
+// Custom Request Logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 // Root Route
 app.get('/', (req, res) => {
   res.json({ 
@@ -65,4 +75,18 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('JWT_SECRET_STATUS:', process.env.JWT_SECRET ? 'LOADED_FROM_ENV' : 'USING_DEFAULT_FALLBACK');
+});
+
+// Global Error Handler (MUST be after all routes)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(`[GLOBAL_ERROR] [${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.error('Stack:', err.stack);
+  console.error('Details:', err.message);
+  
+  res.status(500).json({ 
+    error: 'INTERNAL_ERROR', 
+    message: err.message, 
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
 });

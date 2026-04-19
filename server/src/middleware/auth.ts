@@ -8,6 +8,7 @@ export interface AuthPayload {
   tenantId: string;
   role: 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'USER';
   username: string;
+  name: string;
   email: string;
 }
 
@@ -44,8 +45,12 @@ export const requireRole = (roles: ('SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'ORG_ADMI
       return;
     }
     
-    if (roles.length && !roles.includes(req.user.role)) {
-      res.status(403).json({ error: 'INSUFFICIENT_ROLE', required: roles, current: req.user.role });
+    // Treat PLATFORM_ADMIN and SUPER_ADMIN as equivalent for backwards compatibility
+    const effectiveRoles = roles.flatMap(r => r === 'SUPER_ADMIN' ? ['SUPER_ADMIN', 'PLATFORM_ADMIN'] : [r]);
+    const userRole = req.user.role;
+    
+    if (roles.length && !effectiveRoles.includes(userRole as any)) {
+      res.status(403).json({ error: 'INSUFFICIENT_ROLE', required: roles, current: userRole });
       return;
     }
     

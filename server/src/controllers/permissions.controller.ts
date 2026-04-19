@@ -2,6 +2,7 @@ import { Response } from 'express';
 import pool from '../config/db';
 import { AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
+import { recordAuditLog } from '../utils/audit';
 
 export const getPermissions = async (req: AuthRequest, res: Response) => {
   try {
@@ -49,6 +50,11 @@ export const createPermission = async (req: AuthRequest, res: Response) => {
       [id, userId, zoneId, orgId, startDate, endDate, startTime, endTime, JSON.stringify(allowedDays)]
     );
 
+    // Audit Log
+    const [uRows] = await pool.query('SELECT name FROM users WHERE id = ?', [userId]) as any[];
+    const [zRows] = await pool.query('SELECT name FROM zones WHERE id = ?', [zoneId]) as any[];
+    await recordAuditLog(req.user?.email || 'System', 'Access Granted', `User: ${uRows[0]?.name}, Zone: ${zRows[0]?.name}`);
+
     res.status(201).json({ id, message: 'Permission granted' });
   } catch (error: any) {
     console.error('SERVER_CREATE_PERMISSION_ERROR:', error);
@@ -63,6 +69,9 @@ export const revokePermission = async (req: AuthRequest, res: Response) => {
 
     await pool.query('DELETE FROM permissions WHERE id = ? AND organization_id = ?', [id, orgId]);
     
+    // Audit Log (get details before delete if possible, or just log ID)
+    await recordAuditLog(req.user?.email || 'System', 'Access Revoked', `Permission ID: ${id}`);
+
     res.json({ message: 'Permission revoked' });
   } catch (error) {
     console.error('SERVER_REVOKE_PERMISSION_ERROR:', error);
