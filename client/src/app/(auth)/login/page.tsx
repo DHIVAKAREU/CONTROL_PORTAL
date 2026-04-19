@@ -13,7 +13,7 @@ function LoginContent() {
   const setAuth = useAuthStore(state => state.setAuth);
   
   const [email, setEmail] = useState('superadmin@system.in');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('admin@123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -62,6 +62,25 @@ function LoginContent() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // HARDCODED BYPASS: Allow specific credentials without backend check
+    if (email === 'superadmin@system.in' && password === 'admin@123') {
+      const mockUser = {
+        id: 'bypass-super-admin',
+        name: 'System Override Admin',
+        email: 'superadmin@system.in',
+        role: 'PLATFORM_ADMIN' as const,
+        tenantId: 'platform-root',
+        clearanceLevel: 5,
+        org: 'Smart Access Platform',
+        slug: 'platform'
+      };
+      
+      setAuth('bypass-token-' + Date.now(), mockUser);
+      router.push('/platform');
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data } = await api.post('/auth/login', { email, password });
