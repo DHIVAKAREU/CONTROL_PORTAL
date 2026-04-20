@@ -16,7 +16,7 @@ interface PermissionEntry {
   endDate: string;
   startTime: string;
   endTime: string;
-  days: string[];
+  allowedDays: string[];
 }
 
 export default function PermissionManagement() {
@@ -317,7 +317,7 @@ export default function PermissionManagement() {
                                    <td style={{ padding: "20px" }}>
                                       <div style={{ display: "flex", gap: "4px" }}>
                                          {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
-                                            <div key={d} style={{ width: "20px", height: "16px", borderRadius: "4px", fontSize: "7px", fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", background: p.days.includes(d) ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.03)", color: p.days.includes(d) ? "#3b82f6" : "rgba(255,255,255,0.1)", border: `1px solid ${p.days.includes(d) ? "rgba(59,130,246,0.3)" : "transparent"}` }}>{d.substring(0, 1)}</div>
+                                            <div key={d} style={{ width: "20px", height: "16px", borderRadius: "4px", fontSize: "7px", fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", background: (p.allowedDays || []).includes(d) ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.03)", color: (p.allowedDays || []).includes(d) ? "#3b82f6" : "rgba(255,255,255,0.1)", border: `1px solid ${(p.allowedDays || []).includes(d) ? "rgba(59,130,246,0.3)" : "transparent"}` }}>{d.substring(0, 1)}</div>
                                          ))}
                                       </div>
                                    </td>
