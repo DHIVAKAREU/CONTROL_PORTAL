@@ -105,7 +105,7 @@ export default function PermissionManagement() {
 
   const handleGrantAccess = async () => {
     if (!selectedUser || !selectedRoom) return;
-    if (formData.startDate.includes('-') || formData.startTime.includes('-')) {
+    if (formData.startDate === 'dd-mm-yyyy' || formData.startTime === '--:--') {
        setNotif("INCOMPLETE TEMPORAL DATA");
        return;
     }

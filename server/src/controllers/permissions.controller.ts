@@ -6,15 +6,22 @@ import { recordAuditLog } from '../utils/audit';
 
 export const getPermissions = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = req.user?.tenantId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'PLATFORM_ADMIN';
     
-    const [permissions] = await pool.query(`
+    let query = `
       SELECT p.*, u.name as userName, z.name as zoneName 
       FROM permissions p
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN zones z ON p.zone_id = z.id
-      WHERE p.organization_id = ?
-    `, [orgId]);
+    `;
+    let params: any[] = [];
+
+    if (!isSuperAdmin) {
+      query += ' WHERE p.organization_id = ?';
+      params.push(orgId);
+    }
+    
+    const [permissions] = await pool.query(query, params);
 
     const formatted = permissions.map((p: any) => {
       let days = [];
@@ -42,12 +49,20 @@ export const createPermission = async (req: AuthRequest, res: Response) => {
   try {
     const { userId, zoneId, startDate, endDate, startTime, endTime, allowedDays } = req.body;
     const orgId = req.user?.tenantId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'PLATFORM_ADMIN';
+    let finalOrgId = orgId;
+
+    if (isSuperAdmin) {
+      // For platform admins, associate the permission with the zone's organization
+      const [zRows] = await pool.query('SELECT organization_id FROM zones WHERE id = ?', [zoneId]) as any[];
+      finalOrgId = zRows[0]?.organization_id || orgId;
+    }
 
     const id = crypto.randomUUID();
     await pool.query(
       `INSERT INTO permissions (id, user_id, zone_id, organization_id, start_date, end_date, start_time, end_time, allowed_days) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userId, zoneId, orgId, startDate, endDate, startTime, endTime, JSON.stringify(allowedDays)]
+      [id, userId, zoneId, finalOrgId, startDate, endDate, startTime, endTime, JSON.stringify(allowedDays)]
     );
 
     // Audit Log
@@ -66,8 +81,13 @@ export const revokePermission = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const orgId = req.user?.tenantId;
-
-    await pool.query('DELETE FROM permissions WHERE id = ? AND organization_id = ?', [id, orgId]);
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'PLATFORM_ADMIN';
+    
+    if (isSuperAdmin) {
+      await pool.query('DELETE FROM permissions WHERE id = ?', [id]);
+    } else {
+      await pool.query('DELETE FROM permissions WHERE id = ? AND organization_id = ?', [id, orgId]);
+    }
     
     // Audit Log (get details before delete if possible, or just log ID)
     await recordAuditLog(req.user?.email || 'System', 'Access Revoked', `Permission ID: ${id}`);
@@ -83,11 +103,17 @@ export const simulateScan = async (req: AuthRequest, res: Response) => {
   try {
     const { userId, zoneId } = req.body;
     const orgId = req.user?.tenantId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'PLATFORM_ADMIN';
+    
+    let query = 'SELECT * FROM permissions WHERE user_id = ? AND zone_id = ?';
+    let params: any[] = [userId, zoneId];
 
-    const [permissions] = await pool.query(
-      'SELECT * FROM permissions WHERE user_id = ? AND zone_id = ? AND organization_id = ?',
-      [userId, zoneId, orgId]
-    );
+    if (!isSuperAdmin) {
+      query += ' AND organization_id = ?';
+      params.push(orgId);
+    }
+
+    const [permissions] = await pool.query(query, params) as any[];
 
     if (permissions.length === 0) {
       return res.json({ status: 'DENIED', reason: 'No active permission defined' });

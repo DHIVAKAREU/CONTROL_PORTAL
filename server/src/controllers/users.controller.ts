@@ -148,7 +148,7 @@ export const listUsers = async (req: AuthRequest, res: Response): Promise<void> 
         if (caller?.role === 'ORG_ADMIN') {
             query += ' WHERE u.organization_id = ?';
             params.push(caller.tenantId);
-        } else if (caller?.role !== 'SUPER_ADMIN') {
+        } else if (caller?.role !== 'SUPER_ADMIN' && caller?.role !== 'PLATFORM_ADMIN') {
             res.status(403).json({ error: 'FORBIDDEN' });
             return;
         }

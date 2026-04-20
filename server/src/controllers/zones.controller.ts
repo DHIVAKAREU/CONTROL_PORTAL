@@ -7,7 +7,7 @@ import { recordAuditLog } from '../utils/audit';
 export const getZones = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const tenantId = req.user?.tenantId;
-    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'PLATFORM_ADMIN';
     
     let query = 'SELECT * FROM zones';
     let params: any[] = [];
